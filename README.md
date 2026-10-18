@@ -10,21 +10,36 @@ repair steps.
 
 ## What it does
 
-- **Diagnosis** — a gradient-boosted model (LightGBM) names one of 12 faults from a unit's
-  readings: stuck dampers, passing or stuck valves, fouled coil, clogged filter, slipping
-  fan belt, duct leakage, drifted sensors. An isolation forest flags behaviour that is
-  unusual without a name.
+- **Diagnosis** — a trained model names one of 12 faults from a unit's readings: stuck
+  dampers, passing or stuck valves, fouled coil, clogged filter, slipping fan belt, duct
+  leakage, drifted sensors. A second detector flags behaviour that is unusual without a name.
 - **Where and how to fix it** — each fault maps to a part on an animated schematic of the
-  unit, with symptoms, likely causes, repair steps, tools and time (`backend/kb.py`).
+  unit, with symptoms, likely causes, repair steps, tools and time.
+- **Alarm handling** — acknowledge an alarm, assign it to the site technician or the
+  contractor, mark when work starts and keep a running log of notes on it.
+- **Planned maintenance** — six routine tasks per unit (filters, drain pans, belts and
+  bearings, dampers, coils, sensor calibration) with last-done and due dates, who does
+  each one, sign-off, CSV export and a printable task list. Filter changes follow each
+  unit's measured pressure drop, corrected to design airflow.
+- **Operations reports** — the last 24 hours, 7 days or 30 days: energy used against what
+  healthy units would have used, avoidable cost in rupees, faults raised and cleared, mean
+  time to clear, a breakdown by building, the units that wasted the most, and the fault
+  log, with CSV export and print.
 - **Command centre** — fleet health, the fleet drawn as a city (one floor per unit), a live
   counter of the money open faults are burning, early warnings, and a time machine that
   replays the last seven days.
-- **Ask Sentinel** — questions in plain words ("what is wrong with NH 8?", "how much are we
-  wasting?"). Figures come straight from the fleet data; only open questions go to a
-  language model.
+- **Ask Sentinel** — a duty assistant that answers any question in English, Urdu or Roman
+  Urdu ("what is wrong with NH 8?", "which maintenance is overdue at Crescent Mall?",
+  "filter kab change karna chahiye?"). Every figure it quotes comes from the live fleet.
 - **Fault Lab** — break a unit on purpose and watch the model find it.
-- **Work orders** — a printable job card for any open fault.
-- Command palette (Ctrl+K), spoken briefing, alert sounds, the unit's fan as sound.
+- **Work orders** — a printable job card for any open fault, and a 48-hour readings
+  export for every unit.
+- Command palette (Ctrl+K), spoken briefing, alert chimes, the unit's fan as sound. The
+  layout and type scale smoothly from a 320 px phone to a 2560 px screen.
+
+![Operations report](./assets/airsentinel-reports.png)
+
+![Planned maintenance](./assets/airsentinel-maintenance.png)
 
 ## The data, honestly
 
@@ -51,14 +66,12 @@ before they could be trusted.
 
 ```mermaid
 flowchart LR
-  SIM[Physical AHU simulator<br/>8 buildings · 64 units · 1 year] --> F[Feature builder]
-  F --> LGB[LightGBM<br/>12 named faults]
-  F --> IF[Isolation Forest<br/>unnamed anomalies]
-  LGB --> API[Flask API]
-  IF --> API
+  SIM[Physical AHU simulator<br/>8 buildings · 64 units · 1 year] --> M[Fault models<br/>12 named faults + anomaly detector]
+  M --> API[Fleet service]
   KB[Fault knowledge base<br/>part · causes · repair steps] --> API
-  API --> CP[Ask Sentinel copilot<br/>rules first, language model for open questions]
-  API --> UI[React 19 command centre<br/>live twin · Fault Lab · work orders]
+  PM[Maintenance planner<br/>tasks · filters · crews] --> API
+  API --> CP[Ask Sentinel<br/>duty assistant]
+  API --> UI[Web console<br/>command centre · alarms · maintenance · reports]
 ```
 
 ## Source code
